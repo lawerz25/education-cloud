@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Education Cloud - Управление учебными процессами</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <h1>Education Cloud</h1>
+            <p>Облачная система управления учебными процессами</p>
+        </div>
+        <nav>
+            <button id="btn-login" onclick="showSection('login')">Вход</button>
+            <button id="btn-courses" onclick="showSection('courses')">Курсы</button>
+            <button id="btn-grades" onclick="showSection('grades')">Оценки</button>
+            <button id="btn-admin" onclick="showSection('admin')">Администрирование</button>
+            <button id="btn-logout" onclick="logout()" style="display: none;">Выйти</button>
+        </nav>
+    </header>
+
+    <main>
+        <!-- Секция входа -->
+        <section id="login" class="active">
+            <h2>Вход в систему</h2>
+            <div class="form-group">
+                <label>Логин:</label>
+                <input type="text" id="username" placeholder="Введите логин">
+            </div>
+            <div class="form-group">
+                <label>Пароль:</label>
+                <input type="password" id="password" placeholder="Введите пароль">
+            </div>
+            <button onclick="login()">Войти</button>
+            <div id="login-message"></div>
+
+        </section>
+
+        <!-- Секция курсов -->
+        <section id="courses">
+            <h2>Доступные курсы</h2>
+            <div id="courses-list"></div>
+
+            <h3 class="teacher-only admin-only">Добавить новый курс</h3>
+            <div class="form-group teacher-only admin-only">
+                <label>Название курса:</label>
+                <input type="text" id="course-title" placeholder="Название курса">
+            </div>
+            <div class="form-group teacher-only admin-only">
+                <label>Описание:</label>
+                <textarea id="course-description" placeholder="Описание курса"></textarea>
+            </div>
+            <button class="teacher-only admin-only" onclick="addCourse()">Добавить курс</button>
+        </section>
+
+        <!-- Секция оценок -->
+        <section id="grades">
+            <h2>Оценки студентов</h2>
+            <div id="grades-list"></div>
+
+            <h3 class="teacher-only admin-only">Добавить оценку</h3>
+            <div class="form-group teacher-only admin-only">
+                <label>ID студента:</label>
+                <input type="number" id="student-id" placeholder="ID студента">
+            </div>
+            <div class="form-group teacher-only admin-only">
+                <label>Курс:</label>
+                <select id="course-select"></select>
+            </div>
+            <div class="form-group teacher-only admin-only">
+                <label>Оценка (1-5):</label>
+                <input type="number" id="grade-value" min="1" max="5" placeholder="1-5">
+            </div>
+            <button class="teacher-only admin-only" onclick="addGrade()">Добавить оценку</button>
+        </section>
+
+        <!-- Секция администрирования -->
+        <section id="admin">
+            <h2 class="admin-only">Пользователи системы</h2>
+            <div id="users-list" class="admin-only"></div>
+
+            <h3 class="admin-only">Добавить нового пользователя</h3>
+            <div class="form-group admin-only">
+                <label>Логин:</label>
+                <input type="text" id="new-username" placeholder="Логин">
+            </div>
+            <div class="form-group admin-only">
+                <label>Пароль:</label>
+                <input type="password" id="new-password" placeholder="Пароль">
+            </div>
+            <div class="form-group admin-only">
+                <label>Роль:</label>
+                <select id="new-role">
+                    <option value="student">Студент</option>
+                    <option value="teacher">Преподаватель</option>
+                    <option value="admin">Администратор</option>
+                </select>
+            </div>
+            <button class="admin-only" onclick="addUser()">Добавить пользователя</button>
+        </section>
+    </main>
+    <!--
+    <footer>
+        <p>© 2025 Education Cloud. Курсовая работа по настройке и администрированию облачных решений.</p>
+        <p>Система управления учебными процессами с Docker контейнеризацией</p>
+    </footer>
+    -->
+
+    <script src="/js/app.js"></script>
+</body>
+</html>

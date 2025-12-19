@@ -1,0 +1,83 @@
+version: "3.9"
+
+services:
+  frontend:
+    image: lawerz/zotsport-frontend:latest
+    ports:
+      - "3000:80"
+    networks:
+      - zotsport-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  backend:
+    image: lawerz/zotsport-backend:latest
+    environment:
+      - DATABASE_PATH=/data/education.db
+    volumes:
+      - db_data:/data
+    ports:
+      - "3001:3000"
+    networks:
+      - zotsport-network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --requirepass secret
+    volumes:
+      - redis-data:/data
+    networks:
+      - zotsport-network
+    deploy:
+      replicas: 1
+
+  proxy:
+    image: lawerz/zotsport-proxy:latest
+    ports:
+      - "80:80"
+    networks:
+      - zotsport-network
+    depends_on:
+      - frontend
+      - backend
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    ports:
+      - "9000:9000"
+    volumes:
+      - portainer-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - zotsport-network
+    deploy:
+      replicas: 1
+
+  check_db:
+    image: lawerz/zotsport-checkdb:latest
+    volumes:
+      - db_data:/data
+    networks:
+      - zotsport-network
+    deploy:
+      restart_policy:
+        condition: none
+
+networks:
+  zotsport-network:
+    driver: overlay
+
+volumes:
+  db_data:
+  redis-data:
+  portainer-data:
