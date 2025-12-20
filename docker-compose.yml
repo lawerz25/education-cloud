@@ -1,73 +1,49 @@
 services:
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: ../docker/frontend/Dockerfile
+
+  db:
+    image: postgres
+    restart: always
+    shm_size: 128mb
+    environment:
+      POSTGRES_DB: app_db
+      POSTGRES_USER: example
+      POSTGRES_PASSWORD: example
     ports:
-      - "3000:80"
-    volumes:
-      - ./frontend:/usr/share/nginx/html:ro
-    networks:
-      - zotsport-network
+      - "5432:5432"
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "8080:8080"
 
   backend:
-    build:
-      context: ./backend
-      dockerfile: ../docker/backend/Dockerfile
-    environment:
-      - DATABASE_PATH=/data/education.db
+    image: openjdk:17
+    container_name: backend
+    working_dir: /app
     volumes:
-      - ./db:/data
+      - ./backend:/app
+    command: java -jar app.jar
+    depends_on:
+      - db
     ports:
-      - "3001:3000"
-    networks:
-      - zotsport-network
+      - "8081:8081"
 
-  redis:
-    image: redis:alpine
-    command: redis-server --requirepass secret
+  frontend:
+    image: nginx
+    container_name: frontend
     volumes:
-      - redis-data:/data
+      - ./frontend:/usr/share/nginx/html
     ports:
-      - "6379:6379"
-    networks:
-      - zotsport-network
+      - "8082:80"
 
-  proxy:
-    build:
-      context: ./proxy
-      dockerfile: ../docker/proxy/Dockerfile
+  nginx-proxy:
+    image: nginx
+    container_name: nginx-proxy
+    depends_on:
+      - backend
+      - frontend
     ports:
       - "80:80"
     volumes:
-      - ./proxy/nginx.conf:/etc/nginx/nginx.conf:ro
-    networks:
-      - zotsport-network
-
-  portainer:
-    image: portainer/portainer-ce:latest
-    command: -H unix:///var/run/docker.sock
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - portainer-data:/data
-    ports:
-      - "9000:9000"
-    networks:
-      - zotsport-network
-
-  check_db:
-    build:
-      context: ./docker/sqlite
-    volumes:
-      - ./db:/data
-    networks:
-      - zotsport-network
-    command: ["sh", "/check_db.sh"]
-
-networks:
-  zotsport-network:
-    driver: bridge
-
-volumes:
-  redis-data:
-  portainer-data:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro

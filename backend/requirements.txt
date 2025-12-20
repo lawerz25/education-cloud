@@ -1,6 +1,3 @@
 fastapi
 uvicorn
-pydantic
-redis
-python-dotenv
-aiosqlite
+pymysql

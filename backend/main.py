@@ -2,13 +2,12 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
-import sqlite3
 
 import database
 
 app = FastAPI(title="Education Cloud API")
 
-# CORS — для фронтенда
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -16,8 +15,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ---------- МОДЕЛИ ----------
 
-# --- МОДЕЛИ ---
 class LoginRequest(BaseModel):
     username: str
     password: str
@@ -41,13 +40,8 @@ class Grade(BaseModel):
     grade: int
 
 
-# --- инициализация базы ---
-@app.on_event("startup")
-def startup():
-    database.init_db()
+# ---------- РОУТЫ ----------
 
-
-# --- РОУТЫ API ---
 @app.get("/")
 def read_root():
     return {"message": "Education Cloud API is running"}
@@ -55,16 +49,20 @@ def read_root():
 
 @app.post("/login")
 def login(login_data: LoginRequest):
-        with database.get_db() as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT id, username, role FROM users WHERE username = ? AND password = ?",
-                (login_data.username, login_data.password)
-            )
-            user = cursor.fetchone()
-            if not user:
-                raise HTTPException(status_code=401, detail="Invalid credentials")
-            return dict(user)
+    with database.get_db() as conn:
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT id, username, role FROM users WHERE username = %s AND password = %s",
+            (login_data.username, login_data.password)
+        )
+        user = cursor.fetchone()
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+        return {
+            "id": user[0],
+            "username": user[1],
+            "role": user[2]
+        }
 
 
 @app.get("/users")
@@ -72,7 +70,11 @@ def get_users():
     with database.get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT id, username, role FROM users")
-        return [dict(row) for row in cursor.fetchall()]
+        rows = cursor.fetchall()
+        return [
+            {"id": r[0], "username": r[1], "role": r[2]}
+            for r in rows
+        ]
 
 
 @app.post("/users")
@@ -81,12 +83,13 @@ def create_user(user: User):
         cursor = conn.cursor()
         try:
             cursor.execute(
-                "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+                "INSERT INTO users (username, password, role) VALUES (%s, %s, %s)",
                 (user.username, user.password, user.role)
             )
             conn.commit()
             return {"message": "User created"}
-        except sqlite3.IntegrityError:
+        except Exception:
+            conn.rollback()
             raise HTTPException(status_code=400, detail="Username already exists")
 
 
@@ -95,11 +98,20 @@ def get_courses():
     with database.get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT c.*, u.username as teacher_name 
+            SELECT c.id, c.title, c.description, u.username
             FROM courses c
             LEFT JOIN users u ON c.teacher_id = u.id
         """)
-        return [dict(row) for row in cursor.fetchall()]
+        rows = cursor.fetchall()
+        return [
+            {
+                "id": r[0],
+                "title": r[1],
+                "description": r[2],
+                "teacher_name": r[3]
+            }
+            for r in rows
+        ]
 
 
 @app.post("/courses")
@@ -107,7 +119,7 @@ def create_course(course: Course):
     with database.get_db() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO courses (title, description, teacher_id) VALUES (?, ?, ?)",
+            "INSERT INTO courses (title, description, teacher_id) VALUES (%s, %s, %s)",
             (course.title, course.description, course.teacher_id)
         )
         conn.commit()
@@ -119,12 +131,20 @@ def get_grades(student_id: int):
     with database.get_db() as conn:
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT g.*, c.title as course_title
+            SELECT g.id, g.grade, c.title
             FROM grades g
             JOIN courses c ON g.course_id = c.id
-            WHERE g.student_id = ?
+            WHERE g.student_id = %s
         """, (student_id,))
-        return [dict(row) for row in cursor.fetchall()]
+        rows = cursor.fetchall()
+        return [
+            {
+                "id": r[0],
+                "grade": r[1],
+                "course_title": r[2]
+            }
+            for r in rows
+        ]
 
 
 @app.post("/grades")
@@ -132,7 +152,7 @@ def add_grade(grade: Grade):
     with database.get_db() as conn:
         cursor = conn.cursor()
         cursor.execute(
-            "INSERT INTO grades (student_id, course_id, grade) VALUES (?, ?, ?)",
+            "INSERT INTO grades (student_id, course_id, grade) VALUES (%s, %s, %s)",
             (grade.student_id, grade.course_id, grade.grade)
         )
         conn.commit()
